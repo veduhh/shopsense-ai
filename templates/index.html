@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ShopSense AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>🛍 ShopSense AI</h1>
+        <p>Find the smartest, most ethical, best-value product instantly.</p>
+
+        <form method="POST">
+            <input type="text" name="product" placeholder="Search product..." value="{{ query }}" required>
+            <button type="submit">Analyze</button>
+        </form>
+        {% if results is not none %}
+            <h2>Results</h2>
+            {% if results|length == 0 %}
+                <p>No results found for "{{ query }}".</p>
+            {% else %}
+                {% for row in results %}
+                    <div class="card">
+                        <h3>{{ row["name"] }}</h3>
+                        <p><b>Brand:</b> {{ row["brand"] }}</p>
+                        <p><b>Price:</b> ₹{{ row["price"] }}</p>
+                        <p><b>Rating:</b> {{ row["rating"] }}</p>
+                        <p><b>Authenticity:</b> {{ row["authenticity"] }}/5</p>
+                        <p class="score"><b>ShopSense Score:</b> {{ row["ShopSense Score"] }}</p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endif %}
+    </div>
+
+</body>
+</html>

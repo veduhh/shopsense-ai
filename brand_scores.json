@@ -1,0 +1,10 @@
+{
+    "Apple": {"credibility": 9, "ethics": 7},
+    "Samsung": {"credibility": 8, "ethics": 6},
+    "Noise": {"credibility": 6, "ethics": 6},
+    "Boat": {"credibility": 6, "ethics": 6},
+    "OnePlus": {"credibility": 7, "ethics": 6},
+    "Xiaomi": {"credibility": 6, "ethics": 5},
+    "Zara": {"credibility": 6, "ethics": 4},
+    "H&M": {"credibility": 6, "ethics": 4}
+}
