@@ -67,5 +67,29 @@ Deploying (advanced)
 
 - Use the included `render.yaml` or a Procfile to deploy to Render or other PaaS.
 - For Docker deploys, build and run the included `Dockerfile`.
-	- Choose Python environment.
+
+Example: call the API and render a small bar chart (Chart.js)
+
+1) Simple curl call:
+
+```bash
+curl -s "http://localhost:5000/api/search?product=iPhone" | jq .
+```
+
+2) Tiny browser example (after loading Chart.js):
+
+```html
+<!-- assume `data` is the JSON response's `results` array -->
+<canvas id="chart"></canvas>
+<script>
+	const top = data.slice(0,5);
+	const labels = top.map(r => (r.name||'').slice(0,30));
+	const scores = top.map(r => Number(r['ShopSense Score'])||0);
+	new Chart(document.getElementById('chart').getContext('2d'), {
+		type:'bar', data:{ labels, datasets:[{data:scores, backgroundColor:'rgba(37,99,235,0.85)'}] },
+		options:{scales:{y:{beginAtZero:true,max:10}},plugins:{legend:{display:false}}}
+	});
+</script>
+```
+
 

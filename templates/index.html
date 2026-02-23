@@ -27,6 +27,7 @@
                 {% if results is not none %}
                     <h2 class="results-title">Results</h2>
                     <div class="chart-wrap">
+                        <div class="chart-legend">Top 5 ShopSense Scores</div>
                         <canvas id="score-chart" aria-label="Top ShopSense Scores" role="img"></canvas>
                     </div>
                     {% if results|length == 0 %}
@@ -34,7 +35,7 @@
                     {% else %}
                         <div class="grid">
                             {% for row in results %}
-                                <article class="card">
+                                <article class="card" data-rank="{{ loop.index0 }}">
                                     <div class="card-body">
                                         {% if row.get('image') %}
                                             <div class="image-wrap"><img class="product-image" src="{{ row.get('image') }}" alt="{{ row.get('name') }}"></div>
@@ -120,7 +121,7 @@
                     var ctx = document.getElementById('score-chart');
                     if (!ctx) return;
                     ctx.height = 100;
-                    new Chart(ctx.getContext('2d'), {
+                    var chart = new Chart(ctx.getContext('2d'), {
                         type: 'bar',
                         data: {
                             labels: labels,
@@ -137,6 +138,23 @@
                                 y: { beginAtZero: true, max: 10 }
                             },
                             plugins: { legend: { display: false } }
+                        }
+                    });
+
+                    // Click handler: scroll to matching product card and highlight it
+                    ctx.addEventListener('click', function(evt) {
+                        try {
+                            var active = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                            if (!active || !active.length) return;
+                            var index = active[0].index; // index into top array
+                            var selector = '[data-rank="' + index + '"]';
+                            var el = document.querySelector(selector);
+                            if (!el) return;
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('highlight');
+                            setTimeout(function(){ el.classList.remove('highlight'); }, 1800);
+                        } catch (e) {
+                            console.warn('Chart click handler error', e);
                         }
                     });
                 } catch (e) {
