@@ -2,6 +2,8 @@ from flask import Flask, render_template, request
 import pandas as pd
 import json
 import logging
+import heapq
+from scoring import calculate_score
 
 app = Flask(__name__)
 
@@ -9,12 +11,10 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load product dataset (fall back to empty DataFrame if file missing)
-try:
-    products = pd.read_csv("products.csv")
-except Exception as e:
-    logger.warning("could not read products.csv: %s", e)
-    products = pd.DataFrame(columns=["name", "brand", "price", "rating", "authenticity"])
+PRODUCTS_CSV = "products.csv"
+
+# We stream `products.csv` in chunks when searching to support large files.
+# Keep a small in-memory cache for quick lookups if desired.
 
 # Load brand credibility + ethics scores
 try:
@@ -25,84 +25,74 @@ except Exception as e:
     brand_data = {}
 
 
-def _safe_float(x, default=0.0):
-    try:
-        return float(x)
-    except Exception:
-        return default
-
-
-def calculate_score(row):
-    """Calculate a ShopSense score for a product row (dict-like).
-
-    Returns a 0-100 float where higher is better.
-    """
-    brand = row.get("brand", "")
-    price = _safe_float(row.get("price", 0))
-    rating = _safe_float(row.get("rating", 0))
-    auth = _safe_float(row.get("authenticity", rating))
-
-    brand_score = brand_data.get(brand, {}).get("credibility", 5)
-    ethics_score = brand_data.get(brand, {}).get("ethics", 5)
-
-    # Price score: lower price -> better score (on 0-10 scale)
-    price_score = max(0, 10 - (price / 10000))
-
-    # Rating and authenticity scaled to contribute
-    rating_score = min(5, rating) * 2  # rating expected 0-5 -> 0-10
-    auth_score = min(5, auth) * 2
-
-    # Combine with simple weights
-    # weights chosen so different aspects contribute meaningfully
-    weighted = (
-        price_score * 1.5
-        + rating_score * 2.5
-        + auth_score * 2.0
-        + brand_score * 1.0
-        + ethics_score * 1.0
-    )
-
-    # Estimate maximum possible (to normalize to 0-100)
-    max_possible = (10 * 1.5) + (10 * 2.5) + (10 * 2.0) + (10 * 1.0) + (10 * 1.0)
-    if max_possible <= 0:
-        return 0.0
-
-    normalized = (weighted / max_possible) * 100
-    return round(normalized, 2)
+# The scoring implementation lives in `scoring.py` and is imported above.
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    results = None
+    """Home page: simple form to search products and return scored results.
+
+    This uses streaming reads of `products.csv` so the app can handle
+    large datasets without loading everything into memory at once.
+    """
+    results = []
     query = ""
     if request.method == "POST":
         query = (request.form.get("product") or "").strip()
         if query:
-            df = products.copy()
-            if df.empty:
-                results = []
-            else:
-                # search in name or brand (case-insensitive)
-                mask = (
-                    df.get("name", "").astype(str).str.contains(query, case=False, na=False)
-                    | df.get("brand", "").astype(str).str.contains(query, case=False, na=False)
-                )
-                df = df[mask].copy()
-                if df.empty:
-                    results = []
-                else:
-                    # ensure numeric columns exist and are numeric
-                    for col in ["price", "rating", "authenticity"]:
-                        if col in df.columns:
-                            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-                        else:
-                            df[col] = 0
+            # We'll keep only the top N results in a min-heap to bound memory.
+            top_n = 50
+            heap = []  # min-heap of (score, record)
 
-                    # compute ShopSense score
-                    df["ShopSense Score"] = df.apply(lambda r: calculate_score(r.to_dict()), axis=1)
-                    df = df.sort_values("ShopSense Score", ascending=False)
-                    results = df.to_dict(orient="records")
-                    logger.info("Found %d results for query '%s'", len(results), query)
+            try:
+                for chunk in pd.read_csv(PRODUCTS_CSV, chunksize=10000, dtype=str):
+                    # Build a boolean mask searching `name` and `brand` safely.
+                    name_col = chunk.get("name", "")
+                    brand_col = chunk.get("brand", "")
+                    mask = (
+                        name_col.astype(str).str.contains(query, case=False, na=False)
+                        | brand_col.astype(str).str.contains(query, case=False, na=False)
+                    )
+                    filtered = chunk[mask].copy()
+                    if filtered.empty:
+                        continue
+
+                    # Ensure numeric columns exist and are numeric with safe defaults
+                    for col in ["price", "rating", "authenticity"]:
+                        if col in filtered.columns:
+                            filtered[col] = pd.to_numeric(filtered[col], errors="coerce").fillna(0)
+                        else:
+                            filtered[col] = 0
+
+                    # Compute scores using the imported `calculate_score`.
+                    for _, row in filtered.iterrows():
+                        try:
+                            rec = row.to_dict()
+                            score = calculate_score(rec, brand_data)
+                            rec["ShopSense Score"] = score
+                            # Use negative score for max-heap behavior on min-heap
+                            if len(heap) < top_n:
+                                heapq.heappush(heap, (score, rec))
+                            else:
+                                # Replace smallest if current is better
+                                if score > heap[0][0]:
+                                    heapq.heapreplace(heap, (score, rec))
+                        except Exception:
+                            # Skip individual problematic rows but keep running
+                            logger.exception("Error scoring a row; skipping")
+                # Extract heap contents sorted descending
+                results = [item[1] for item in sorted(heap, key=lambda x: x[0], reverse=True)]
+                logger.info("Found %d results for query '%s'", len(results), query)
+            except FileNotFoundError:
+                logger.warning("products.csv not found; returning no results")
+                results = []
+            except pd.errors.EmptyDataError:
+                logger.warning("products.csv is empty")
+                results = []
+            except Exception:
+                logger.exception("Unexpected error while searching products")
+                results = []
+
     return render_template("index.html", results=results, query=query)
 
 
