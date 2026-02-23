@@ -26,6 +26,9 @@
             <section class="results">
                 {% if results is not none %}
                     <h2 class="results-title">Results</h2>
+                    <div class="chart-wrap">
+                        <canvas id="score-chart" aria-label="Top ShopSense Scores" role="img"></canvas>
+                    </div>
                     {% if results|length == 0 %}
                         <p class="no-results">No results found for "{{ query }}".</p>
                     {% else %}
@@ -100,6 +103,45 @@
                         overlay.setAttribute('aria-hidden','false');
                     }
                 });
+            })();
+        </script>
+        <!-- Chart.js (lightweight CDN) -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            (function(){
+                try {
+                    var raw = {{ results|tojson | safe }} || [];
+                    if (!raw || !raw.length) return;
+                    // pick top 5 results
+                    var top = raw.slice(0,5);
+                    var labels = top.map(function(r){ return (r.name || r.title || 'Product').slice(0,30); });
+                    var scores = top.map(function(r){ return Number(r['ShopSense Score']) || 0; });
+
+                    var ctx = document.getElementById('score-chart');
+                    if (!ctx) return;
+                    ctx.height = 100;
+                    new Chart(ctx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'ShopSense Score (0-10)',
+                                data: scores,
+                                backgroundColor: 'rgba(37,99,235,0.85)'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true, max: 10 }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                } catch (e) {
+                    console.warn('Chart init failed', e);
+                }
             })();
         </script>
     </body>
