@@ -1,37 +1,88 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>ShopSense AI</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>ShopSense AI</title>
+        <link rel="stylesheet" href="/static/style.css">
+    </head>
+    <body>
+        <header class="topbar">
+            <div class="topbar-inner">
+                <h1 class="brand">🛍 ShopSense AI</h1>
+                <form method="POST" class="search-form" role="search">
+                    <label for="q" class="sr-only">Search products or category</label>
+                    <input id="q" name="product" type="search" placeholder="Search product or category..." value="{{ query }}" autocomplete="off">
+                    <button type="submit" aria-label="Search">Search</button>
+                </form>
+            </div>
+        </header>
 
-    <div class="container">
-        <h1>🛍 ShopSense AI</h1>
-        <p>Find the smartest, most ethical, best-value product instantly.</p>
+        <main class="page">
+            <section class="hero">
+                <p class="lead">Find the smartest, most ethical, best-value products instantly.</p>
+            </section>
 
-        <form method="POST">
-            <input type="text" name="product" placeholder="Search product..." value="{{ query }}" required>
-            <button type="submit">Analyze</button>
-        </form>
-        {% if results is not none %}
-            <h2>Results</h2>
-            {% if results|length == 0 %}
-                <p>No results found for "{{ query }}".</p>
-            {% else %}
-                {% for row in results %}
-                    <div class="card">
-                        <h3>{{ row["name"] }}</h3>
-                        <p><b>Brand:</b> {{ row["brand"] }}</p>
-                        <p><b>Price:</b> ₹{{ row["price"] }}</p>
-                        <p><b>Rating:</b> {{ row["rating"] }}</p>
-                        <p><b>Authenticity:</b> {{ row["authenticity"] }}/5</p>
-                        <p class="score"><b>ShopSense Score:</b> {{ row["ShopSense Score"] }}</p>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endif %}
-    </div>
+            <section class="results">
+                {% if results is not none %}
+                    <h2 class="results-title">Results</h2>
+                    {% if results|length == 0 %}
+                        <p class="no-results">No results found for "{{ query }}".</p>
+                    {% else %}
+                        <div class="grid">
+                            {% for row in results %}
+                                <article class="card">
+                                    <div class="card-body">
+                                        {% if row.get('image') %}
+                                            <div class="image-wrap"><img class="product-image" src="{{ row.get('image') }}" alt="{{ row.get('name') }}"></div>
+                                        {% endif %}
+                                        <h3 class="product-name">{{ row.get('name') or 'Unnamed product' }}</h3>
+                                        <p class="meta"><span class="muted">Category:</span> {{ row.get('category') or '—' }}</p>
+                                        <p class="meta"><span class="muted">Brand:</span> {{ row.get('brand') or '—' }}</p>
+                                        <p class="price">Price: <strong>₹{{ row.get('price') }}</strong></p>
+                                        <p class="meta">Rating: {{ row.get('rating') }} / 5 · Authenticity: {{ row.get('authenticity') }} / 5</p>
+                                    </div>
+                                    <div class="card-footer">
+                                        <div class="score">ShopSense: <strong>{{ row.get('ShopSense Score') }}</strong></div>
+                                        {% if row.get('link') %}
+                                            <a class="btn" href="{{ row.get('link') }}" target="_blank" rel="noopener noreferrer">View Product</a>
+                                        {% else %}
+                                            <button class="btn disabled" disabled>View Product</button>
+                                        {% endif %}
+                                    </div>
+                                    <div class="breakdown">
+                                        {% set bd = row.get('score_breakdown', {}) %}
+                                        <div class="break-item"><span>Rating</span><span class="help" title="Rating contribution (30%)">i</span>
+                                            <div class="bar"><div class="bar-inner" style="width:{{ (bd.get('rating',0) / 10 * 100) | round(1) }}%"></div></div>
+                                            <small>{{ bd.get('rating', 0) }}</small>
+                                        </div>
+                                        <div class="break-item"><span>Price</span><span class="help" title="Price contribution (20%), lower price -> higher contribution">i</span>
+                                            <div class="bar"><div class="bar-inner" style="width:{{ (bd.get('price',0) / 10 * 100) | round(1) }}%"></div></div>
+                                            <small>{{ bd.get('price', 0) }}</small>
+                                        </div>
+                                        <div class="break-item"><span>Authenticity</span><span class="help" title="Authenticity derived from rating (15%)">i</span>
+                                            <div class="bar"><div class="bar-inner" style="width:{{ (bd.get('authenticity',0) / 10 * 100) | round(1) }}%"></div></div>
+                                            <small>{{ bd.get('authenticity', 0) }}</small>
+                                        </div>
+                                        <div class="break-item"><span>Brand</span><span class="help" title="Brand credibility contribution (20%)">i</span>
+                                            <div class="bar"><div class="bar-inner" style="width:{{ (bd.get('brand',0) / 10 * 100) | round(1) }}%"></div></div>
+                                            <small>{{ bd.get('brand', 0) }}</small>
+                                        </div>
+                                        <div class="break-item"><span>Ethics</span><span class="help" title="Brand ethics contribution (15%)">i</span>
+                                            <div class="bar"><div class="bar-inner" style="width:{{ (bd.get('ethics',0) / 10 * 100) | round(1) }}%"></div></div>
+                                            <small>{{ bd.get('ethics', 0) }}</small>
+                                        </div>
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </section>
+        </main>
 
-</body>
+        <footer class="site-footer">
+            <div class="container">© ShopSense AI</div>
+        </footer>
+    </body>
 </html>
