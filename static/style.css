@@ -45,6 +45,13 @@ body{
 .results-title{color:#fff;margin:8px 0}
 .no-results{color:#fff}
 
+.no-results{background:rgba(255,255,255,0.04);padding:12px;border-radius:8px;color:#fff}
+
+.loading-overlay{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(2,6,23,0.45);z-index:9999}
+.loading-box{background:rgba(255,255,255,0.06);padding:16px 22px;border-radius:10px;color:#fff;font-weight:600;display:flex;gap:6px;align-items:center}
+.loading-box .dot{animation:blink 1s infinite}
+@keyframes blink{0%{opacity:0.2}50%{opacity:1}100%{opacity:0.2}}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
 .card{background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.98));border-radius:12px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 10px 25px rgba(2,6,23,0.35)}
 .card-body{padding-bottom:12px}

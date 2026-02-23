@@ -3,6 +3,11 @@
 ![CI](https://github.com/veduhh/shopsense-ai/actions/workflows/ci.yml/badge.svg)
 
 Simple Flask app that ranks products by value, credibility and ethics.
+# ShopSense AI
+
+![CI](https://github.com/veduhh/shopsense-ai/actions/workflows/ci.yml/badge.svg)
+
+ShopSense AI ranks products by value, credibility and ethics using a simple, beginner-friendly Flask app.
 
 Getting started
 
@@ -22,26 +27,29 @@ python app.py
 # then open http://127.0.0.1:5000
 ```
 
-3) Production
+3) Production (Render)
 
-- For Unix hosts, use gunicorn (already in `requirements.txt`):
+This project includes a `render.yaml` manifest. Basic Render steps:
 
-```bash
-gunicorn -b 0.0.0.0:5000 app:app
-```
+- Create a Render account and connect your GitHub repo.
+- Create a new Web Service (Python).
+- Build command: `pip install -r requirements.txt`.
+- Start command: `gunicorn -b 0.0.0.0:5000 app:app`.
 
-- For Windows production hosts, use `waitress`:
+Tip: For Windows hosts use `waitress` instead of `gunicorn`.
 
-```powershell
-python -m waitress --listen=*:5000 app:app
-```
+API
 
-4) Container (Docker):
+Search via JSON API:
 
-```bash
-docker build -t shopsense-ai:latest .
-docker run -p 5000:5000 shopsense-ai:latest
-```
+GET `/api/search?product=<query>`
+
+Response: JSON object with `query` and `results` (each result includes `score_breakdown`).
+
+Error handling & loading
+
+- The UI shows a clear message when no results are found.
+- A small loading indicator appears while searches run.
 
 Testing
 
@@ -49,31 +57,15 @@ Testing
 python -m pytest -q
 ```
 
-Files changed
+Notes for maintainers
 
-- `app.py` — made robust CSV/JSON loading and safe scoring.
-- `templates/index.html` — template loop fixed.
-- `requirements.txt` — added production servers and test deps.
-- `Dockerfile`, `Procfile` — deployment artifacts.
+- The scoring logic lives in `scoring.py` and is easy to test.
+- CSV processing is streamed in `app.py` to support large datasets.
+- The app exposes `create_app()` for WSGI servers that prefer a factory function.
 
-Next steps
+Deploying (advanced)
 
-- Add CI (GitHub Actions) to run tests and build the Docker image.
-- Add more unit tests for edge cases.
-
-Deploying the dynamic app (recommended) — Render
------------------------------------------------
-
-Render is a simple PaaS for deploying dynamic apps (Flask) directly from GitHub. To deploy:
-
-1. Create a Render account and connect your GitHub repository: https://render.com
-2. Create a new Web Service and point it to this repo and branch `main`.
+- Use the included `render.yaml` or a Procfile to deploy to Render or other PaaS.
+- For Docker deploys, build and run the included `Dockerfile`.
 	- Choose Python environment.
-	- Build command: `pip install -r requirements.txt` (the `render.yaml` includes this already).
-	- Start command: `gunicorn -b 0.0.0.0:5000 app:app` (Procfile also available).
-3. In the repo, add two GitHub Secrets: `RENDER_SERVICE_ID` and `RENDER_API_KEY` (the Render service id and an API key). The repository already includes a workflow `.github/workflows/deploy_render.yml` which will run tests then trigger a render deploy on push to `main`.
-
-Notes:
-- The included `render.yaml` is a convenience manifest that Render can use to create/update the service with the right settings.
-- If you prefer automatic surface-level setup, you can skip `render.yaml` and configure the service through the Render UI.
 
