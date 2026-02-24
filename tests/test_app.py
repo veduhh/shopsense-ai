@@ -22,4 +22,12 @@ def test_search_post_not_found():
     resp = client.post("/", data={"product": "NonExistingProductXYZ"})
     assert resp.status_code == 200
     # Should not crash; page should render without results
-    assert b"Results" in resp.data or b"No results" or True
+    assert b"No results found" in resp.data
+
+
+def test_health():
+    client = myapp.app.test_client()
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.is_json
+    assert resp.get_json().get("status") == "ok"

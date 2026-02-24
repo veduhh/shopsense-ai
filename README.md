@@ -2,12 +2,7 @@
 
 ![CI](https://github.com/veduhh/shopsense-ai/actions/workflows/ci.yml/badge.svg)
 
-Simple Flask app that ranks products by value, credibility and ethics.
-# ShopSense AI
-
-![CI](https://github.com/veduhh/shopsense-ai/actions/workflows/ci.yml/badge.svg)
-
-ShopSense AI ranks products by value, credibility and ethics using a simple, beginner-friendly Flask app.
+ShopSense AI is an intelligent ethical price comparison platform. It ranks products by value, credibility, and ethics using a Flask backend and a responsive UI.
 
 Getting started
 
@@ -34,7 +29,7 @@ This project includes a `render.yaml` manifest. Basic Render steps:
 - Create a Render account and connect your GitHub repo.
 - Create a new Web Service (Python).
 - Build command: `pip install -r requirements.txt`.
-- Start command: `gunicorn -b 0.0.0.0:5000 app:app`.
+- Start command: `gunicorn -b 0.0.0.0:$PORT app:app`.
 
 Tip: For Windows hosts use `waitress` instead of `gunicorn`.
 
@@ -91,5 +86,3 @@ curl -s "http://localhost:5000/api/search?product=iPhone" | jq .
 	});
 </script>
 ```
-
-

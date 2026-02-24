@@ -1,12 +1,10 @@
 services:
-  - type: web_service
+  - type: web
     name: shopsense-ai
     env: python
     plan: free
-  repo: https://github.com/veduhh/shopsense-ai
-    branch: main
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -b 0.0.0.0:5000 app:app
+    startCommand: gunicorn -b 0.0.0.0:$PORT app:app
     envVars:
       - key: FLASK_ENV
         value: production

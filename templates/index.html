@@ -12,7 +12,13 @@
                 <h1 class="brand">🛍 ShopSense AI</h1>
                 <form method="POST" class="search-form" role="search">
                     <label for="q" class="sr-only">Search products or category</label>
-                    <input id="q" name="product" type="search" placeholder="Search product or category..." value="{{ query }}" autocomplete="off">
+                    <input id="q"
+                           name="product"
+                           type="search"
+                           placeholder="Search product or category..."
+                           value="{{ query }}"
+                           autocomplete="off"
+                           list="search-options">
                     <button type="submit" aria-label="Search">Search</button>
                 </form>
             </div>
@@ -21,41 +27,58 @@
         <main class="page">
             <section class="hero">
                 <p class="lead">Find the smartest, most ethical, best-value products instantly.</p>
+                <p class="lead" style="font-size:14px;opacity:0.9;">
+                    Try searches like <strong>\"iphone\"</strong>, <strong>\"headphones\"</strong>, <strong>\"smartwatch\"</strong> or <strong>\"jacket\"</strong> to explore different categories.
+                </p>
             </section>
+
+            <datalist id="search-options">
+                {% for term in suggestions or [] %}
+                    <option value="{{ term }}"></option>
+                {% endfor %}
+            </datalist>
 
             <section class="results">
                 {% if results is not none %}
                     <h2 class="results-title">Results</h2>
-                    <div class="chart-wrap">
-                        <div class="chart-legend">Top 5 ShopSense Scores</div>
-                        <canvas id="score-chart" aria-label="Top ShopSense Scores" role="img"></canvas>
-                    </div>
                     {% if results|length == 0 %}
                         <p class="no-results">No results found for "{{ query }}".</p>
                     {% else %}
                         <div class="grid">
-                            {% for row in results %}
+                            {% for group in results %}
+                                {% set best = group.get('best_offer') or {} %}
                                 <article class="card" data-rank="{{ loop.index0 }}">
                                     <div class="card-body">
-                                        {% if row.get('image') %}
-                                            <div class="image-wrap"><img class="product-image" src="{{ row.get('image') }}" alt="{{ row.get('name') }}"></div>
+                                        <h3 class="product-name">{{ group.get('product_model') or 'Unnamed product' }}</h3>
+                                        <p class="meta"><span class="muted">Category:</span> {{ group.get('category') or best.get('category') or '—' }}</p>
+                                        <p class="meta"><span class="muted">Best source:</span> {{ best.get('source') or '—' }}</p>
+                                        <p class="price">Best price: <strong>₹{{ best.get('price') }}</strong></p>
+                                        <p class="meta">Rating: {{ best.get('rating') }} / 5 · Authenticity: {{ best.get('authenticity') }} / 5</p>
+                                        {% if best.get('fake_score') is not none %}
+                                            {% set fs = (best.get('fake_score')|float) %}
+                                            {% if fs <= 0.15 %}
+                                                {% set sev = 'low' %}
+                                                {% set title = 'Very low fake-review risk' %}
+                                            {% elif fs <= 0.4 %}
+                                                {% set sev = 'medium' %}
+                                                {% set title = 'Some signs of fake reviews' %}
+                                            {% else %}
+                                                {% set sev = 'high' %}
+                                                {% set title = 'Strong signs of fake reviews' %}
+                                            {% endif %}
+                                            <p class="meta">Fake‑review risk: <span class="fake-badge {{ sev }}" title="{{ title }}">{{ (fs * 100)|round(0) }}%</span></p>
                                         {% endif %}
-                                        <h3 class="product-name">{{ row.get('name') or 'Unnamed product' }}</h3>
-                                        <p class="meta"><span class="muted">Category:</span> {{ row.get('category') or '—' }}</p>
-                                        <p class="meta"><span class="muted">Brand:</span> {{ row.get('brand') or '—' }}</p>
-                                        <p class="price">Price: <strong>₹{{ row.get('price') }}</strong></p>
-                                        <p class="meta">Rating: {{ row.get('rating') }} / 5 · Authenticity: {{ row.get('authenticity') }} / 5</p>
                                     </div>
                                     <div class="card-footer">
-                                        <div class="score">ShopSense: <strong>{{ row.get('ShopSense Score') }}</strong></div>
-                                        {% if row.get('link') %}
-                                            <a class="btn" href="{{ row.get('link') }}" target="_blank" rel="noopener noreferrer">View Product</a>
+                                        <div class="score">Best ShopSense: <strong>{{ group.get('best_score') }}</strong></div>
+                                        {% if best.get('link') %}
+                                            <a class="btn" href="{{ best.get('link') }}" target="_blank" rel="noopener noreferrer">Go to Best Deal</a>
                                         {% else %}
-                                            <button class="btn disabled" disabled>View Product</button>
+                                            <button class="btn disabled" disabled>Go to Best Deal</button>
                                         {% endif %}
                                     </div>
                                     <div class="breakdown">
-                                        {% set bd = row.get('score_breakdown', {}) %}
+                                        {% set bd = best.get('score_breakdown', {}) %}
                                         <div class="break-item"><span>Rating</span><span class="help" title="Rating contribution (30%)">i</span>
                                             <div class="bar"><div class="bar-inner" style="width:{{ (bd.get('rating',0) / 10 * 100) | round(1) }}%"></div></div>
                                             <small>{{ bd.get('rating', 0) }}</small>
@@ -77,6 +100,40 @@
                                             <small>{{ bd.get('ethics', 0) }}</small>
                                         </div>
                                     </div>
+
+                                    {% if group.get('offers') %}
+                                        <div class="offer-table">
+                                            <div class="offer-table-header">Compare prices from different stores</div>
+                                            <table>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Store</th>
+                                                        <th>Price</th>
+                                                        <th>Rating</th>
+                                                        <th>ShopSense</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for offer in group.get('offers')|sort(attribute='price') %}
+                                                        <tr>
+                                                            <td>{{ offer.get('source') or '—' }}</td>
+                                                            <td>₹{{ offer.get('price') }}</td>
+                                                            <td>{{ offer.get('rating') }}</td>
+                                                            <td>{{ offer.get('ShopSense Score') }}</td>
+                                                            <td>
+                                                                {% if offer.get('link') %}
+                                                                    <a href="{{ offer.get('link') }}" target="_blank" rel="noopener noreferrer">View</a>
+                                                                {% else %}
+                                                                    <span class="muted">No link</span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% endif %}
                                 </article>
                             {% endfor %}
                         </div>
@@ -104,62 +161,6 @@
                         overlay.setAttribute('aria-hidden','false');
                     }
                 });
-            })();
-        </script>
-        <!-- Chart.js (lightweight CDN) -->
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script>
-            (function(){
-                try {
-                    var raw = {{ results|tojson | safe }} || [];
-                    if (!raw || !raw.length) return;
-                    // pick top 5 results
-                    var top = raw.slice(0,5);
-                    var labels = top.map(function(r){ return (r.name || r.title || 'Product').slice(0,30); });
-                    var scores = top.map(function(r){ return Number(r['ShopSense Score']) || 0; });
-
-                    var ctx = document.getElementById('score-chart');
-                    if (!ctx) return;
-                    ctx.height = 100;
-                    var chart = new Chart(ctx.getContext('2d'), {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'ShopSense Score (0-10)',
-                                data: scores,
-                                backgroundColor: 'rgba(37,99,235,0.85)'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: { beginAtZero: true, max: 10 }
-                            },
-                            plugins: { legend: { display: false } }
-                        }
-                    });
-
-                    // Click handler: scroll to matching product card and highlight it
-                    ctx.addEventListener('click', function(evt) {
-                        try {
-                            var active = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
-                            if (!active || !active.length) return;
-                            var index = active[0].index; // index into top array
-                            var selector = '[data-rank="' + index + '"]';
-                            var el = document.querySelector(selector);
-                            if (!el) return;
-                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            el.classList.add('highlight');
-                            setTimeout(function(){ el.classList.remove('highlight'); }, 1800);
-                        } catch (e) {
-                            console.warn('Chart click handler error', e);
-                        }
-                    });
-                } catch (e) {
-                    console.warn('Chart init failed', e);
-                }
             })();
         </script>
     </body>

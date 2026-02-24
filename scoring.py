@@ -42,7 +42,7 @@ def compute_max_price(csv_path: str, chunksize: int = 10000) -> float:
     return max(1.0, float(max_price))
 
 
-def calculate_score(record: Dict[str, Any], brand_data: Optional[Dict[str, Dict[str, Any]]] = None, max_price: Optional[float] = None) -> float:
+def calculate_score(record: Dict[str, Any], brand_data: Optional[Dict[str, Dict[str, Any]]] = None, max_price: Optional[float] = None, fake_score: Optional[float] = None) -> float:
     """Calculate a weighted ShopSense score on a 0-10 scale.
 
     Weights:
@@ -103,6 +103,17 @@ def calculate_score(record: Dict[str, Any], brand_data: Optional[Dict[str, Dict[
 
     final = contrib_rating + contrib_price + contrib_brand + contrib_ethics + contrib_auth
 
+    # Apply optional fake-review penalty: `fake_score` in [0,1] where higher means more likely fake.
+    # We apply a multiplicative penalty so existing weights remain interpretable.
+    try:
+        fake_val = float(fake_score) if fake_score is not None else 0.0
+    except Exception:
+        fake_val = 0.0
+    fake_val = max(0.0, min(1.0, fake_val))
+    fake_weight = 0.15
+    penalty = 1.0 - (fake_weight * fake_val)
+    final = final * penalty
+
     # Ensure numeric result and clamp to 0-10
     try:
         final = float(final)
@@ -152,7 +163,20 @@ def calculate_score_breakdown(record: Dict[str, Any], brand_data: Optional[Dict[
     contrib_ethics = round(ethics_score * w_ethics, 3)
     contrib_auth = round(auth_score * w_auth, 3)
 
-    total = contrib_rating + contrib_price + contrib_brand + contrib_ethics + contrib_auth
+    total_before_penalty = contrib_rating + contrib_price + contrib_brand + contrib_ethics + contrib_auth
+
+    # Fake review penalty (optional)
+    fake_val = 0.0
+    if isinstance(record, dict) and record.get("fake_score") is not None:
+        try:
+            fake_val = float(record.get("fake_score", 0.0))
+        except Exception:
+            fake_val = 0.0
+    fake_val = max(0.0, min(1.0, fake_val))
+    fake_weight = 0.15
+    penalty = 1.0 - (fake_weight * fake_val)
+
+    total = total_before_penalty * penalty
     total = round(max(0.0, min(10.0, total)), 3)
 
     return {
@@ -161,5 +185,6 @@ def calculate_score_breakdown(record: Dict[str, Any], brand_data: Optional[Dict[
         "brand": contrib_brand,
         "ethics": contrib_ethics,
         "authenticity": contrib_auth,
+        "fake_penalty": round(total_before_penalty - total, 3),
         "total": total,
     }
