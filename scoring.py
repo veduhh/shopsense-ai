@@ -66,10 +66,23 @@ def calculate_score(record: Dict[str, Any], brand_data: Optional[Dict[str, Dict[
 
     price = _safe_float(record.get("price", 0), 0.0)
     rating = _safe_float(record.get("rating", 0), 0.0)
+    
+    # Map 'seller' to 'authenticity' if explicit column missing
     authenticity = _safe_float(record.get("authenticity", 0), 0.0)
+    if "authenticity" not in record and "seller" in record:
+        seller_str = str(record.get("seller", "")).lower()
+        if "verified" in seller_str or "authorized" in seller_str:
+            authenticity = 5.0
+        elif "trusted" in seller_str:
+            authenticity = 4.0
+        else:
+            authenticity = 3.0
 
     # Brand-level signals (expected 0-10); default to midpoint 5
     brand = record.get("brand", "") or ""
+    if not brand and "product_name" in record:
+        brand = str(record["product_name"]).split()[0]
+
     brand_score = _safe_float(brand_data.get(brand, {}).get("credibility", 5), 5)
     ethics_score = _safe_float(brand_data.get(brand, {}).get("ethics", 5), 5)
 
@@ -135,9 +148,22 @@ def calculate_score_breakdown(record: Dict[str, Any], brand_data: Optional[Dict[
 
     price = _safe_float(record.get("price", 0), 0.0)
     rating = _safe_float(record.get("rating", 0), 0.0)
+    
+    # Map 'seller' to 'authenticity' if explicit column missing
     authenticity = _safe_float(record.get("authenticity", 0), 0.0)
+    if "authenticity" not in record and "seller" in record:
+        seller_str = str(record.get("seller", "")).lower()
+        if "verified" in seller_str or "authorized" in seller_str:
+            authenticity = 5.0
+        elif "trusted" in seller_str:
+            authenticity = 4.0
+        else:
+            authenticity = 3.0
 
     brand = record.get("brand", "") or ""
+    if not brand and "product_name" in record:
+        brand = str(record["product_name"]).split()[0]
+
     brand_score = _safe_float(brand_data.get(brand, {}).get("credibility", 5), 5)
     ethics_score = _safe_float(brand_data.get(brand, {}).get("ethics", 5), 5)
 

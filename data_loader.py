@@ -66,6 +66,10 @@ def build_search_suggestions(
     for chunk in iter_product_chunks(csv_path):
         # Make sure expected columns exist
         chunk = chunk.copy()
+        
+        if "product_name" in chunk.columns and "name" not in chunk.columns:
+            chunk["name"] = chunk["product_name"]
+            
         for col in ("name", "category"):
             if col not in chunk.columns:
                 chunk[col] = ""
@@ -81,4 +85,3 @@ def build_search_suggestions(
             break
 
     return sorted(terms)
-

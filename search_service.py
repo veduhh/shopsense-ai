@@ -35,6 +35,10 @@ def _prepare_frame(df: pd.DataFrame) -> pd.DataFrame:
     if "category" not in df.columns:
         df["category"] = "Unknown"
 
+    # Handle schema change: map product_name to name for internal consistency
+    if "product_name" in df.columns and "name" not in df.columns:
+        df["name"] = df["product_name"]
+
     # Normalise key string columns.
     if "name" not in df.columns:
         df["name"] = ""
@@ -85,8 +89,14 @@ def _apply_feature_engineering(df: pd.DataFrame, query: str) -> pd.DataFrame:
             extract_brand_from_name
         )
 
-    # Authenticity derived from rating.
-    df["authenticity"] = df["rating"].apply(auth_from_rating_value)
+    # Authenticity: prefer seller-based, fallback to rating-based.
+    if "seller" in df.columns:
+        s = df["seller"].fillna("").astype(str).str.lower()
+        df["authenticity"] = 3
+        df.loc[s.str.contains("trusted", na=False), "authenticity"] = 4
+        df.loc[s.str.contains("verified", na=False) | s.str.contains("authorized", na=False), "authenticity"] = 5
+    else:
+        df["authenticity"] = df["rating"].apply(auth_from_rating_value)
 
     # High-level category for nicer display and query control.
     df["category"] = df.apply(
@@ -247,4 +257,3 @@ def search_products(
     except Exception:
         logger.exception("Unexpected error while searching products")
         return []
-

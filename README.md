@@ -78,7 +78,7 @@ curl -s "http://localhost:5000/api/search?product=iPhone" | jq .
 <canvas id="chart"></canvas>
 <script>
 	const top = data.slice(0,5);
-	const labels = top.map(r => (r.name||'').slice(0,30));
+	const labels = top.map(r => (r.product_name||'').slice(0,30));
 	const scores = top.map(r => Number(r['ShopSense Score'])||0);
 	new Chart(document.getElementById('chart').getContext('2d'), {
 		type:'bar', data:{ labels, datasets:[{data:scores, backgroundColor:'rgba(37,99,235,0.85)'}] },

@@ -1,9 +1,10 @@
-name,brand,price,rating,authenticity,category,fake_score
-iPhone 15,Apple,79999.0,4.8,,,0.0
-Galaxy S23,Samsung,74999.0,4.6,,,0.0
-Noise Smartwatch,Noise,2999.0,4.1,,,0.0
-Boat Headphones,Boat,1999.0,4.2,,,0.0
-OnePlus Nord,OnePlus,27999.0,4.4,,,0.0
-Mi Powerbank,Xiaomi,1499.0,4.3,,,0.0
-Zara Jacket,Zara,4999.0,4.0,,,0.0
-H&M Hoodie,H&M,2499.0,3.9,,,0.0
+product_id,product_name,category,platform,price,rating,review_count,seller,discount_percent,product_url
+1,AirFlex Running Sneakers,sneakers,Amazon,2999,4.4,1245,Verified Seller,20,https://www.amazon.in/s?k=AirFlex+Running+Sneakers
+1,AirFlex Running Sneakers,sneakers,Flipkart,2799,4.3,980,Trusted Seller,25,https://www.flipkart.com/search?q=AirFlex+Running+Sneakers
+1,AirFlex Running Sneakers,sneakers,Myntra,3199,4.5,1100,Authorized Dealer,15,https://www.myntra.com/AirFlex-Running-Sneakers
+2,UrbanStreet Casual Sneakers,sneakers,Amazon,2499,4.1,875,Verified Seller,10,https://www.amazon.in/s?k=UrbanStreet+Casual+Sneakers
+2,UrbanStreet Casual Sneakers,sneakers,Flipkart,2299,4.0,640,Trusted Seller,18,https://www.flipkart.com/search?q=UrbanStreet+Casual+Sneakers
+2,UrbanStreet Casual Sneakers,sneakers,Ajio,2399,4.2,720,Authorized Dealer,12,https://www.ajio.com/search/?text=UrbanStreet%20Casual%20Sneakers
+3,PowerBeat Wireless Headphones,electronics,Amazon,3999,4.6,5420,Verified Seller,30,https://www.amazon.in/s?k=PowerBeat+Wireless+Headphones
+3,PowerBeat Wireless Headphones,electronics,Flipkart,3799,4.5,4980,Trusted Seller,28,https://www.flipkart.com/search?q=PowerBeat+Wireless+Headphones
+3,PowerBeat Wireless Headphones,electronics,Croma,4099,4.4,4100,Authorized Dealer,22,https://www.croma.com/search/?text=PowerBeat%20Wireless%20Headphones
