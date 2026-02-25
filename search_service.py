@@ -21,7 +21,11 @@ from features import (
     extract_brand_from_name,
 )
 from scoring import calculate_score_breakdown, compute_max_price
-from scripts.fake_review_detector import compute_fake_score
+
+try:
+    from scripts.fake_review_detector import compute_fake_score
+except ImportError:
+    def compute_fake_score(text): return 0.0
 
 logger = logging.getLogger(__name__)
 _MAX_PRICE_CACHE: Dict[str, float] = {}
@@ -36,8 +40,11 @@ def _prepare_frame(df: pd.DataFrame) -> pd.DataFrame:
         df["category"] = "Unknown"
 
     # Handle schema change: map product_name to name for internal consistency
-    if "product_name" in df.columns and "name" not in df.columns:
-        df["name"] = df["product_name"]
+    if "product_name" in df.columns:
+        # Create 'name' column if missing, or fill gaps if present
+        if "name" not in df.columns:
+            df["name"] = df["product_name"]
+        df["name"] = df["name"].fillna(df["product_name"])
 
     # Normalise key string columns.
     if "name" not in df.columns:
@@ -185,8 +192,17 @@ def search_products(
         max_price = _get_cached_max_price(csv_path)
 
         for raw_chunk in iter_product_chunks(csv_path, chunksize=20_000):
-            name_col = raw_chunk.get("name", "").astype(str)
-            category_col = raw_chunk.get("category", "").astype(str)
+            # Handle schema change: map product_name to name for filtering
+            # We do this on a copy or series to avoid SettingWithCopyWarning on raw_chunk
+            if "product_name" in raw_chunk.columns:
+                name_source = raw_chunk["product_name"]
+            elif "name" in raw_chunk.columns:
+                name_source = raw_chunk["name"]
+            else:
+                name_source = pd.Series([""] * len(raw_chunk), index=raw_chunk.index)
+            
+            name_col = name_source.fillna("").astype(str)
+            category_col = raw_chunk["category"].fillna("").astype(str) if "category" in raw_chunk.columns else pd.Series([""] * len(raw_chunk), index=raw_chunk.index)
 
             # Wide initial filter on name + category.
             mask = name_col.str.contains(query, case=False, na=False) | category_col.str.contains(
@@ -222,8 +238,12 @@ def search_products(
 
                     group = groups.get(key)
                     if not group:
+                        model_name = name or rec.get("title") or "Unknown product"
                         group = {
-                            "product_model": name or rec.get("title") or "Unknown product",
+                            "product_model": model_name,
+                            "product_name": model_name,
+                            "title": model_name,
+                            "name": model_name,
                             "category": rec.get("category") or "",
                             "best_score": 0.0,
                             "best_offer": None,
@@ -231,8 +251,10 @@ def search_products(
                         }
                         groups[key] = group
 
+                    source_name = rec.get("platform") or rec.get("source") or rec.get("seller") or rec.get("brand") or "Unknown Store"
                     offer = {
-                        "source": rec.get("source") or rec.get("brand") or "",
+                        "source": source_name,
+                        "store": source_name,  # Alias for frontend compatibility
                         "price": rec.get("price"),
                         "rating": rec.get("rating"),
                         "authenticity": rec.get("authenticity"),

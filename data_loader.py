@@ -67,8 +67,11 @@ def build_search_suggestions(
         # Make sure expected columns exist
         chunk = chunk.copy()
         
-        if "product_name" in chunk.columns and "name" not in chunk.columns:
-            chunk["name"] = chunk["product_name"]
+        if "product_name" in chunk.columns:
+            if "name" not in chunk.columns:
+                chunk["name"] = chunk["product_name"]
+            else:
+                chunk["name"] = chunk["product_name"].fillna(chunk["name"])
             
         for col in ("name", "category"):
             if col not in chunk.columns:

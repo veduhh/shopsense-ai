@@ -1,9 +1,12 @@
-"""Compatibility module for platforms that run `main:app`."""
-
+"""Runtime entrypoint for local/dev execution."""
 import os
 
-from app import app
+from app import create_app
+
+app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(debug=os.getenv("FLASK_DEBUG", "0") == "1", port=5000)
+    port = int(os.getenv("PORT", "5000"))
+    debug = os.getenv("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
